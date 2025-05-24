@@ -1,6 +1,12 @@
 # ContadorPalabrasApp
 
-# Contador de Palabras – Adaptación de C++/oneTBB a Java
+## Contador de Palabras – Adaptación de C++/oneTBB a Java
+## Participantes del proyecto
+
+- José Daniel Martín
+- Hugo Sánchez Gallego
+- Fernando Santamaría
+- Marcos García Benito
 
 ## 1. Objetivo original
 
