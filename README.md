@@ -1,6 +1,9 @@
 # ContadorPalabrasApp
 
 ## Contador de Palabras – Adaptación de C++/oneTBB a Java
+
+ENLACE AL REPO --> https://github.com/MarckosBilbo/ContadorPalabrasApp
+
 ## Participantes del proyecto
 
 - José Daniel Martín
@@ -8,7 +11,6 @@
 - Fernando Santamaría
 - Marcos García Benito
 
-ENLACE AL REPO --> https://github.com/MarckosBilbo/ContadorPalabrasApp
 
 ## 1. Objetivo original
 
