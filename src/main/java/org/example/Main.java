@@ -7,81 +7,78 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Main que reconoce argumentos sueltos o con nombre.
+ * Punto de entrada de la aplicación.
  *
- * Sintaxis admitida (cualquier orden):
- *   --top <N>        → número de palabras del TOP (entero positivo)
- *   --mode <sec|par> → sec = secuencial, par = paralelo
- *   --dir  <carpeta> → carpeta que contiene los .txt   (opcional)
+ * Parámetros admitidos en cualquier orden:
+ *   --top  N        → número de palabras en el TOP  (entero > 0)
+ *   --mode sec|par  → modo de ejecución: secuencial o paralelo
+ *   --dir  carpeta  → carpeta que contiene los archivos .txt
  *
- * Ejemplos:
- *   java -jar app.jar                    (usa valores por defecto)
- *   java -jar app.jar --top 50           (TOP-50 paralelo)
- *   java -jar app.jar 80 sec             (TOP-80 secuencial)
- *   java -jar app.jar par 100 --dir datos
+ * Cualquier argumento que no encaje en los anteriores se ignora mostrando aviso.
  */
 public class Main {
 
     public static void main(String[] args) {
 
-        /* ---------- 1.  Valores por defecto ---------- */
-        int     topN      = 20;
-        boolean paralelo  = true;             // true = par, false = sec
+        /* ---------------- 1. Valores por defecto ---------------- */
+        int     topN       = 20;
+        boolean paralelo   = true;           // true = par, false = sec
         String  directorio = "archivos";
 
-        /* ---------- 2.  Analizar argumentos ---------- */
+        /* ---------------- 2. Parseo de argumentos ---------------- */
         for (int i = 0; i < args.length; i++) {
             String arg = args[i];
 
-            /* --top 30  /  30  */
+            /* --top 50  |  50 */
             if (arg.equalsIgnoreCase("--top")) {
-                if (++i >= args.length) { error("--top necesita un número"); return; }
-                topN = parseEntero(args[i], "El valor de --top debe ser entero positivo");
-            } else if (maybeNumero(arg)) {
-                topN = parseEntero(arg, "El argumento numérico debe ser un entero.");
+                if (++i >= args.length) { mostrarError("--top necesita un número"); return; }
+                topN = parseEntero(args[i], "El valor de --top debe ser > 0");
+            } else if (esNumero(arg)) {
+                topN = parseEntero(arg, "El primer argumento numérico debe ser > 0");
             }
 
-            /* --mode par  /  par  /  sec */
+            /* --mode par  |  par | sec */
             else if (arg.equalsIgnoreCase("--mode")) {
-                if (++i >= args.length) { error("--mode necesita sec o par"); return; }
+                if (++i >= args.length) { mostrarError("--mode necesita sec o par"); return; }
                 paralelo = parseModo(args[i]);
             } else if (arg.equalsIgnoreCase("par") || arg.equalsIgnoreCase("sec")) {
                 paralelo = parseModo(arg);
             }
 
-            /* --dir textos  */
+            /* --dir textos */
             else if (arg.equalsIgnoreCase("--dir")) {
-                if (++i >= args.length) { error("--dir necesita un nombre de carpeta"); return; }
+                if (++i >= args.length) { mostrarError("--dir necesita un nombre de carpeta"); return; }
                 directorio = args[i];
             }
 
-            /* Argumento no reconocido → aviso, pero no abortamos */
+            /* Cualquier otra cosa se ignora mostrando aviso */
             else {
                 System.err.println("Aviso: se ignora argumento desconocido '" + arg + "'");
             }
         }
 
-        /* ---------- 3.  Procesar archivos ---------- */
+        /* ---------------- 3. Procesamiento ---------------- */
         ProcesadorArchivos procesador =
                 new ProcesadorArchivos(Paths.get(directorio).toString());
 
         try {
-            long inicio = System.currentTimeMillis();
+            long appInicio = System.currentTimeMillis();
 
             List<Resultado> resultados = paralelo
                     ? procesador.procesarParalelamente(topN)
                     : procesador.procesarSecuencialmente(topN);
 
-            long fin = System.currentTimeMillis();
+            long appFin = System.currentTimeMillis();
 
-            /* Resultados por archivo */
+            /* ---- 3.1. Imprimir resultados por archivo ---- */
             int finalTopN = topN;
             resultados.forEach(r -> r.imprimir(finalTopN));
 
-            /* Resumen global */
+            /* ---- 3.2. Resumen global ---- */
             int totalPalabras = resultados.stream()
                     .mapToInt(Resultado::getTotalPalabras)
                     .sum();
+
             Map<String,Integer> global = new ConcurrentHashMap<>();
             resultados.forEach(r ->
                     r.getPalabrasFrecuentes()
@@ -95,18 +92,27 @@ public class Main {
             topGlobal.forEach(e ->
                     System.out.printf("  %s: %d%n", e.getKey(), e.getValue()));
 
-            System.out.printf("%nTiempo de ejecución (%s): %d ms%n",
+            /* ---- 3.3. Métricas de tiempo ---- */
+            long tiempoArchivos = resultados.stream()
+                    .mapToLong(Resultado::getDuracionMs)
+                    .sum();
+            double media = tiempoArchivos / (double) resultados.size();
+
+            System.out.printf("%nTiempo total archivos ( suma de duraciones ): %d ms  (media %.1f ms)%n",
+                    tiempoArchivos, media);
+
+            System.out.printf("Tiempo de ejecución completo (%s): %d ms%n",
                     paralelo ? "paralelo" : "secuencial",
-                    (fin - inicio));
+                    (appFin - appInicio));
 
         } catch (IOException e) {
             System.err.println("Error al procesar archivos: " + e.getMessage());
         }
     }
 
-    /* ----------  utilidades ---------- */
+    /* ---------------- utilidades internas ---------------- */
 
-    private static void error(String msg) {
+    private static void mostrarError(String msg) {
         System.err.println("Error: " + msg);
         System.err.println("Uso: java Main [--top N] [--mode sec|par] [--dir carpeta]");
     }
@@ -117,18 +123,21 @@ public class Main {
             if (n <= 0) throw new NumberFormatException();
             return n;
         } catch (NumberFormatException e) {
-            error(msgError); System.exit(1); return -1;
+            mostrarError(msgError);
+            System.exit(1);
+            return 1; // nunca se alcanza
         }
     }
 
     private static boolean parseModo(String s) {
         if (s.equalsIgnoreCase("par")) return true;
         if (s.equalsIgnoreCase("sec")) return false;
-        error("Modo inválido: usa sec o par");
-        System.exit(1); return true;            // nunca llega
+        mostrarError("Modo inválido: usa sec o par");
+        System.exit(1);
+        return true; // nunca se alcanza
     }
 
-    private static boolean maybeNumero(String s) {
+    private static boolean esNumero(String s) {
         return s.chars().allMatch(Character::isDigit);
     }
 }
