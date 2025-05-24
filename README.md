@@ -8,6 +8,8 @@
 - Fernando Santamaría
 - Marcos García Benito
 
+ENLACE AL REPO --> https://github.com/MarckosBilbo/ContadorPalabrasApp
+
 ## 1. Objetivo original
 
 > *Procesar todos los `.txt` de un directorio (≥ 10 000 palabras c/u),  
