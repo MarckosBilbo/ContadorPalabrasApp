@@ -1,4 +1,4 @@
-# ContadorPalabrasApp[Ejercicio Parctica Final Enunciado 2.2]
+#[Ejercicio Parctica Final Enunciado 2.2]
 
 ## Contador de Palabras – Adaptación de C++/oneTBB a Java
 
