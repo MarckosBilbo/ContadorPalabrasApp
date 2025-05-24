@@ -46,6 +46,7 @@ public class Resultado {
      * @param topN número de palabras que se muestran en el TOP
      */
     public void imprimir(int topN) {
+        System.out.println("=========================================");
         System.out.println("Archivo: " + nombreArchivo);
         System.out.println("Total de palabras: " + totalPalabras);
         System.out.println("Tiempo de procesamiento: " + duracionMs + " ms");
